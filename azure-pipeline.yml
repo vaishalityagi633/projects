@@ -25,27 +25,4 @@ stages:
         PathtoPublish: publish
         ArtifactName: drop
 
-- stage: Deploy
-  displayName: Deploy to Linux VM
-  dependsOn: Build
-  jobs:
-  - job: DeployJob
-    pool:
-      vmImage: ubuntu-latest
-    steps:
-    - task: DownloadBuildArtifacts@0
-      inputs:
-        artifactName: drop
 
-    - task: CopyFilesOverSSH@0
-      inputs:
-        sshEndpoint: 'linux-vm-ssh'
-        sourceFolder: '$(System.DefaultWorkingDirectory)/drop'
-        targetFolder: $(deployPath)
-
-    - task: SSH@0
-      inputs:
-        sshEndpoint: 'linux-vm-ssh'
-        runOptions: inline
-        inline: |
-          sudo systemctl restart dotnetapp
