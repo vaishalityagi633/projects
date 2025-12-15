@@ -1,0 +1,51 @@
+trigger:
+- main
+
+variables:
+  appName: dotnet-sample-api
+  deployPath: /var/www/dotnetapp
+
+stages:
+- stage: Build
+  displayName: Build Application
+  jobs:
+  - job: BuildJob
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: Publish App
+      inputs:
+        command: publish
+        projects: app/dotnet-sample-api/*.csproj
+        arguments: '-c Release -o publish'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: publish
+        ArtifactName: drop
+
+- stage: Deploy
+  displayName: Deploy to Linux VM
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        artifactName: drop
+
+    - task: CopyFilesOverSSH@0
+      inputs:
+        sshEndpoint: 'linux-vm-ssh'
+        sourceFolder: '$(System.DefaultWorkingDirectory)/drop'
+        targetFolder: $(deployPath)
+
+    - task: SSH@0
+      inputs:
+        sshEndpoint: 'linux-vm-ssh'
+        runOptions: inline
+        inline: |
+          sudo systemctl restart dotnetapp
